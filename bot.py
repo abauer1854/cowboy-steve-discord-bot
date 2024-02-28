@@ -2,7 +2,7 @@ import os
 import discord
 import responses
 
-
+# eoieoeo
 async def send_message(message, user_message, is_private):
     try:
         response = responses.handle_response(user_message)
