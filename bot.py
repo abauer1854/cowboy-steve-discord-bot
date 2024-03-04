@@ -1,4 +1,3 @@
-import os
 import discord
 import responses
 
@@ -12,7 +11,7 @@ async def send_message(message, user_message, is_private):
 
 
 def run_bot():
-    TOKEN = os.environ.get('BOT_TOKEN')
+    TOKEN = responses.os.environ.get('BOT_TOKEN')
     # these intents are now needed so that honduras can read any message, not just ! messages
     intents = discord.Intents.default()
     intents.typing = True
