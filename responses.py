@@ -29,14 +29,19 @@ def convert_url_to_image(image_url):
     if not image_url:
         return image_url
     return Image.open(requests.get(image_url, stream=True).raw)
+
+
+def text_response_with_image(image, caption) -> str:
+    vision_model = genai.GenerativeModel('gemini-pro-vision')
+
+    if caption:
+        return vision_model.generate_content([caption, image]).text
     
+    return vision_model.generate_content(["Describe what is in this image.", image]).text
 
-def handle_response(message, image_url) -> str:
-    image = convert_url_to_image(image_url)
-    p_message = message.lower()
-    interruption = honduras_interruptions(p_message)
 
-    ai_msg = MODEL.generate_content(p_message,
+def text_response(message) -> str:
+    ai_msg = MODEL.generate_content(message,
                                     safety_settings=[
                                                     {
                                                         "category": "HARM_CATEGORY_HARASSMENT",
@@ -65,4 +70,19 @@ def handle_response(message, image_url) -> str:
                                     ))
     print(ai_msg.prompt_feedback)
 
-    return interruption + ai_msg.text
+    return ai_msg.text
+
+
+def handle_response(message, image_url) -> str:
+    image = convert_url_to_image(image_url)
+    p_message = message.lower()
+    interruption = honduras_interruptions(p_message)
+    ai_msg = ""
+
+    if image:
+        ai_msg = text_response_with_image(image, p_message)
+    else:
+        ai_msg = text_response(p_message)
+
+    
+    return interruption + ai_msg
