@@ -24,11 +24,21 @@ def honduras_interruptions(message):
     
     return interruption
 
+def convert_discord_obj_to_url(obj):
+    if not obj:
+        return obj
+    return str(obj[0].url)
+
 # convert discord attachment url to images using PIL
 def convert_url_to_image(image_url):
     if not image_url:
         return image_url
-    return Image.open(requests.get(image_url, stream=True).raw)
+    try:
+        return Image.open(requests.get(image_url, stream=True).raw)
+    except Exception as e:
+        print("Could not open image: ", e)
+    
+    return None
 
 
 def text_response_with_image(image, caption) -> str:
@@ -73,12 +83,14 @@ def text_response(message) -> str:
     return ai_msg.text
 
 
-def handle_response(message, image_url) -> str:
+def handle_response(message, img_obj) -> str:
+    image_url = convert_discord_obj_to_url(img_obj)
     image = convert_url_to_image(image_url)
+
     p_message = message.lower()
     interruption = honduras_interruptions(p_message)
-    ai_msg = ""
 
+    ai_msg = ""
     if image:
         ai_msg = text_response_with_image(image, p_message)
     else:
