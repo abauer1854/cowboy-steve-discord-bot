@@ -37,8 +37,6 @@ def run_bot():
         # handling images
         if message.attachments:
             image = message.attachments # if there are multiple attachments, image becomes a list of attachment objects
-        
-        print(user_message, "\n", image)
 
         print(f"{username} said: '{user_message}' ({channel})")
 

@@ -11,6 +11,28 @@ import requests
 
 genai.configure(api_key = os.environ['GOOGLE_API_KEY'])
 MODEL = genai.GenerativeModel('gemini-pro')
+SAFETY_SETTINGS = [
+    {
+        "category": "HARM_CATEGORY_DANGEROUS",
+        "threshold": "BLOCK_NONE",
+    },
+    {
+        "category": "HARM_CATEGORY_HARASSMENT",
+        "threshold": "BLOCK_NONE",
+    },
+    {
+        "category": "HARM_CATEGORY_HATE_SPEECH",
+        "threshold": "BLOCK_NONE",
+    },
+    {
+        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        "threshold": "BLOCK_NONE",
+    },
+    {
+        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+        "threshold": "BLOCK_NONE",
+    },
+]
 
 
 # collection of one-liner responses that honduras makes when specific words/phrases are said
@@ -44,43 +66,74 @@ def convert_url_to_image(image_url):
 def text_response_with_image(image, caption) -> str:
     vision_model = genai.GenerativeModel('gemini-pro-vision')
 
-    if caption:
-        return vision_model.generate_content([caption, image]).text
+    if not caption:
+        caption = "Describe what is in this image."
+
+    return vision_model.generate_content([caption, image], safety_settings = SAFETY_SETTINGS).text
+
+
+def convert_to_cowboy_lingo(orig_msg) -> str:
+    cowboy_msg = ""
+    prompt = "Can you convert this message to cowboy lingo. Make sure to use slang: "
     
-    return vision_model.generate_content(["Describe what is in this image.", image]).text
+    generation_config = genai.types.GenerationConfig(
+        candidate_count = 1,
+        stop_sequences = [],
+        max_output_tokens = 300,
+        top_p = 0.9,
+        top_k = 5,
+        temperature = 1.0
+    )
+
+    try:
+        cowboy_msg = MODEL.generate_content(prompt + orig_msg,
+                                        safety_settings = SAFETY_SETTINGS,
+                                        generation_config = generation_config).text      
+    except ValueError as e:
+        print("Could not generate, trying other way: ", e)
+        try:
+            cowboy_msg = MODEL.generate_content(prompt + orig_msg,
+                                            safety_settings = SAFETY_SETTINGS).text
+        except ValueError as e:
+            print("Could not generate without filters either", e)
+
+            return "I couldn't tell ya bud."
+    
+    return cowboy_msg
 
 
 def text_response(message) -> str:
-    ai_msg = MODEL.generate_content(message,
-                                    safety_settings=[
-                                                    {
-                                                        "category": "HARM_CATEGORY_HARASSMENT",
-                                                        "threshold": "BLOCK_NONE",
-                                                    },
-                                                    {
-                                                        "category": "HARM_CATEGORY_HATE_SPEECH",
-                                                        "threshold": "BLOCK_NONE",
-                                                    },
-                                                    {
-                                                        "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                                                        "threshold": "BLOCK_NONE",
-                                                    },
-                                                    {
-                                                        "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                                                        "threshold": "BLOCK_NONE",
-                                                    }
-                                                ],
-                                    generation_config = genai.types.GenerationConfig(
-                                    candidate_count = 1,
-                                    stop_sequences = [],
-                                    max_output_tokens = 50, # a token is approximately 4 characters so 160 char output roughly
-                                    top_p = 0.9,
-                                    top_k = 5,
-                                    temperature = 1.0
-                                    ))
-    print(ai_msg.prompt_feedback)
+    # https://ai.google.dev/api/rest/v1beta/GenerateContentResponse
+    ai_msg = ""
+    generation_config = genai.types.GenerationConfig(
+        candidate_count = 1,
+        stop_sequences = [],
+        max_output_tokens = 175, # a token is approximately 4 characters, this also causes issues
+        top_p = 0.6,
+        top_k = 5,
+        temperature = 0.6
+    )
 
-    return ai_msg.text
+    # there are times where using generation_config I do not get a response, will do more testing
+    # mostly due to the max_output_tokens part of the config, but some inputs will also cause 0 output
+    # print "I couldn't tell ya bud" when it doesn't know what to say
+    try:
+        ai_msg = MODEL.generate_content(message,
+                                        safety_settings = SAFETY_SETTINGS,
+                                        generation_config = generation_config).text      
+    except ValueError as e:
+        print("Could not generate, trying other way: ", e)
+        try:
+            ai_msg = MODEL.generate_content(message,
+                                            safety_settings = SAFETY_SETTINGS).text
+        except ValueError as e:
+            print("Could not generate without filters either", e)
+
+            return "I couldn't tell ya bud."
+    
+    # print(ai_msg.prompt_feedback)
+
+    return convert_to_cowboy_lingo(ai_msg)
 
 
 def handle_response(message, img_obj) -> str:
@@ -96,5 +149,8 @@ def handle_response(message, img_obj) -> str:
     else:
         ai_msg = text_response(p_message)
 
+    # if message is too long for discord 2000 character allowance, return default response
+    if len(interruption + ai_msg) > 2000:
+        return "I couldn't tell ya bud."
     
     return interruption + ai_msg
