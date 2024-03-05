@@ -69,20 +69,21 @@ def text_response_with_image(image, caption) -> str:
     if not caption:
         caption = "Describe what is in this image."
 
-    return vision_model.generate_content([caption, image], safety_settings = SAFETY_SETTINGS).text
+    return convert_to_cowboy_lingo(vision_model.generate_content([caption, image], safety_settings = SAFETY_SETTINGS).text)
 
 
 def convert_to_cowboy_lingo(orig_msg) -> str:
     cowboy_msg = ""
-    prompt = "Can you convert this message to cowboy lingo. Make sure to use slang: "
-    
+    prompt = "Your name is 'cowboy steve'. You are unenthusiastic. Do not mention that you are an AI model \
+    Can you convert this message to mean cowboy lingo in all lowercase letters: "
+
     generation_config = genai.types.GenerationConfig(
         candidate_count = 1,
         stop_sequences = [],
-        max_output_tokens = 300,
+        # max_output_tokens = 100,
         top_p = 0.9,
         top_k = 5,
-        temperature = 1.0
+        temperature = 0.7
     )
 
     try:
@@ -90,14 +91,8 @@ def convert_to_cowboy_lingo(orig_msg) -> str:
                                         safety_settings = SAFETY_SETTINGS,
                                         generation_config = generation_config).text      
     except ValueError as e:
-        print("Could not generate, trying other way: ", e)
-        try:
-            cowboy_msg = MODEL.generate_content(prompt + orig_msg,
-                                            safety_settings = SAFETY_SETTINGS).text
-        except ValueError as e:
-            print("Could not generate without filters either", e)
-
-            return "I couldn't tell ya bud."
+        print("Could not convert to cowboy: ", e)
+        return "I couldn't tell ya bud."
     
     return cowboy_msg
 
@@ -108,7 +103,7 @@ def text_response(message) -> str:
     generation_config = genai.types.GenerationConfig(
         candidate_count = 1,
         stop_sequences = [],
-        max_output_tokens = 175, # a token is approximately 4 characters, this also causes issues
+        max_output_tokens = 200, # a token is approximately 4 characters, this also causes issues
         top_p = 0.6,
         top_k = 5,
         temperature = 0.6
@@ -116,7 +111,7 @@ def text_response(message) -> str:
 
     # there are times where using generation_config I do not get a response, will do more testing
     # mostly due to the max_output_tokens part of the config, but some inputs will also cause 0 output
-    # print "I couldn't tell ya bud" when it doesn't know what to say
+    # print "I couldn't tell ya bud" when it can't generate content
     try:
         ai_msg = MODEL.generate_content(message,
                                         safety_settings = SAFETY_SETTINGS,
