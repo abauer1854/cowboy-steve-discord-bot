@@ -35,10 +35,10 @@ SAFETY_SETTINGS = [
 ]
 
 
-# collection of one-liner responses that honduras makes when specific words/phrases are said
-def honduras_interruptions(message):
+# collection of one-liner responses that steve makes when specific words/phrases are said
+def steve_interruptions(message):
     interruption = ""
-    if 'honduras' in message:
+    if 'steve' in message:
         interruption += "whart\n"
     
     if 'youtube' in message:
@@ -136,7 +136,7 @@ def handle_response(message, img_obj) -> str:
     image = convert_url_to_image(image_url)
 
     p_message = message.lower()
-    interruption = honduras_interruptions(p_message)
+    interruption = steve_interruptions(p_message)
 
     ai_msg = ""
     if image:
@@ -144,8 +144,8 @@ def handle_response(message, img_obj) -> str:
     else:
         ai_msg = text_response(p_message)
 
-    # if message is too long for discord 2000 character allowance, return default response
-    if len(interruption + ai_msg) > 2000:
+    # if message is too long for discord 4000(?) character allowance, return default response
+    if len(interruption + ai_msg) > 4000:
         return "I couldn't tell ya bud."
     
     return interruption + ai_msg
