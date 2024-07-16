@@ -12,7 +12,6 @@
 # Cowboy Steve Discord Bot
 AI Chatbot with a **old-timey western slang** that uses Google Gemini and Discord API to talk with you. It also uses Gemini-vision to interpret images sent by chatters. Coded in Python
 
-*Still a work in progress!*
 
 <!-- ABOUT THE PROJECT -->
 <!-- ## Some Examples: -->
